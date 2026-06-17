@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slice It Up — Professional Dev</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f7;
+    color: #1a1a1a;
+    padding: 2rem;
+  }
+  .app { max-width: 480px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e5df;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .topbar p { font-size: 13px; color: #888; margin-top: 2px; }
+  .back-link { font-size: 13px; color: #888; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+  .back-link:hover { color: #555; }
+
+  .card { background: #fff; border: 1px solid #e8e5df; border-radius: 10px; overflow: hidden; }
+  .card-header {
+    background: #854F0B; padding: 0.75rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+  .add-btn {
+    font-size: 12px; color: rgba(255,255,255,0.85); background: none; border: none;
+    cursor: pointer; font-family: inherit;
+  }
+  .card-body { padding: 1rem 1.25rem; }
+
+  .filter-row { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-btn {
+    font-size: 12px; padding: 4px 10px; border-radius: 20px; border: 1px solid #ddd;
+    background: #fff; color: #888; cursor: pointer; font-family: inherit;
+  }
+  .filter-btn.active { background: #854F0B; color: #fff; border-color: #854F0B; }
+
+  .item-row { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid #f0ede8; }
+  .item-row:last-child { border-bottom: none; }
+  .item-check {
+    width: 17px; height: 17px; border-radius: 4px; border: 1px solid #ccc;
+    flex-shrink: 0; margin-top: 1px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: #854F0B;
+  }
+  .item-check.done { background: #FAEEDA; border-color: #D9A648; }
+  .item-content { flex: 1; }
+  .item-title { font-size: 13px; color: #333; line-height: 1.4; }
+  .item-title.done { text-decoration: line-through; color: #bbb; }
+  .item-title a { color: inherit; text-decoration: none; border-bottom: 1px dotted #999; }
+  .tag {
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px;
+    background: #f7f2e9; color: #854F0B; white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+  }
+  .delete-x { font-size: 12px; color: #ccc; cursor: pointer; padding: 0 4px; }
+  .delete-x:hover { color: #E24B4A; }
+
+  .empty-state { font-size: 13px; color: #999; text-align: center; padding: 1rem 0; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 1.5rem; width: 320px; }
+  .modal h3 { font-size: 15px; margin-bottom: 1rem; }
+  .modal label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select {
+    width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;
+    font-family: inherit;
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+  .modal-actions button {
+    font-size: 13px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancel { background: #f0ede8; color: #555; }
+  .btn-save { background: #854F0B; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Slice it up</h1>
+      <p id="today-date"></p>
+    </div>
+    <a class="back-link" href="index.html">← Dashboard</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Professional Dev</h2>
+      <button class="add-btn" onclick="openModal()">+ resource</button>
+    </div>
+    <div class="card-body">
+      <div class="filter-row" id="filter-row">
+        <button class="filter-btn active" data-tag="all" onclick="setFilter('all')">All</button>
+        <button class="filter-btn" data-tag="Avada" onclick="setFilter('Avada')">Avada</button>
+        <button class="filter-btn" data-tag="WordPress" onclick="setFilter('WordPress')">WordPress</button>
+        <button class="filter-btn" data-tag="AI" onclick="setFilter('AI')">AI</button>
+        <button class="filter-btn" data-tag="Other" onclick="setFilter('Other')">Other</button>
+      </div>
+      <div id="item-list">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Add a resource</h3>
+    <label>Title</label>
+    <input type="text" id="item-title" placeholder="e.g. Avada changelog, Block themes guide">
+    <label>Category</label>
+    <select id="item-tag">
+      <option value="Avada">Avada</option>
+      <option value="WordPress">WordPress</option>
+      <option value="AI">AI</option>
+      <option value="Other">Other</option>
+    </select>
+    <label>Link (optional)</label>
+    <input type="text" id="item-url" placeholder="https://...">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://xybbihonrxuswlkhloyd.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5YmJpaG9ucnh1c3dsa2hsb3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzYxOTAsImV4cCI6MjA5NzIxMjE5MH0.549JALOdaUPJF5NhjG_IVQBUdPvJu5tKWiKOMTr-_Is";
+
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json"
+  };
+
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  let currentFilter = "all";
+  let allItems = [];
+
+  // Large rotating pool of on-topic resources. 6 are shown at a time;
+  // when one is checked off it's deleted for good and the next unused
+  // pool item (matching its category) is pulled in to replace it.
+  const resourcePool = [
+    // Avada
+    { title: "Avada 7.x changelog — new Mega Menu options", tag: "Avada", url: "https://theme-fusion.com/changelog/" },
+    { title: "Fusion Builder basics — container & column system", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Avada performance tuning — image & script optimization", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Avada Header Builder — sticky headers & mobile menus", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Fusion Builder global options & design sets", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Avada Forms — building and styling client contact forms", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Troubleshooting common Avada CSS conflicts", tag: "Avada", url: "https://avada.com/documentation/" },
+    { title: "Avada child themes — when and how to use them", tag: "Avada", url: "https://avada.com/documentation/" },
+    // WordPress
+    { title: "WordPress full site editing with block themes", tag: "WordPress", url: "https://wordpress.org/documentation/article/site-editor/" },
+    { title: "Core Web Vitals — what matters for client sites", tag: "WordPress", url: "https://web.dev/vitals/" },
+    { title: "WordPress security hardening checklist", tag: "WordPress", url: "https://wordpress.org/documentation/article/hardening-wordpress/" },
+    { title: "Gravity Forms — conditional logic deep dive", tag: "WordPress", url: "https://www.gravityforms.com/documentation/" },
+    { title: "Yoast SEO — structured data and schema basics", tag: "WordPress", url: "https://yoast.com/help/" },
+    { title: "WordPress multisite — when it's the right call", tag: "WordPress", url: "https://wordpress.org/documentation/article/before-you-create-a-network/" },
+    { title: "Speeding up WordPress with caching & CDNs", tag: "WordPress", url: "" },
+    { title: "WP-CLI basics for faster site maintenance", tag: "WordPress", url: "https://wp-cli.org/" },
+    // AI
+    { title: "Prompt engineering basics for client deliverables", tag: "AI", url: "https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/overview" },
+    { title: "Using AI to speed up content audits", tag: "AI", url: "" },
+    { title: "AI-assisted copywriting without losing client voice", tag: "AI", url: "" },
+    { title: "Using AI for accessibility audits on client sites", tag: "AI", url: "" },
+    { title: "AI image generation — what's safe to use commercially", tag: "AI", url: "" },
+    { title: "Building simple AI-powered tools for client projects", tag: "AI", url: "" },
+    // Other
+    { title: "Writing better project proposals — pricing & scope clarity", tag: "Other", url: "" },
+    { title: "Client onboarding checklist for new web projects", tag: "Other", url: "" },
+    { title: "Handoff documentation — what clients actually need", tag: "Other", url: "" },
+    { title: "Setting boundaries with scope creep on fixed-fee projects", tag: "Other", url: "" }
+  ];
+
+  // How many curated slots stay visible at once
+  const CURATED_SLOT_COUNT = 6;
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function topUpCurated() {
+    // Get all curated items ever used (including completed ones we're about to clean up)
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?select=*&is_curated=eq.true`, { headers });
+    const curatedRows = await res.json();
+
+    // Any curated row marked complete gets deleted permanently right now
+    const toDelete = curatedRows.filter(r => r.is_complete);
+    for (const row of toDelete) {
+      await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?id=eq.${row.id}`, { method: "DELETE", headers });
+    }
+
+    // Recalculate how many curated slots are currently active (not completed)
+    const activeCurated = curatedRows.filter(r => !r.is_complete);
+    const usedTitles = new Set(curatedRows.map(r => r.title)); // includes deleted-just-now, so we don't re-add immediately
+    const slotsToFill = CURATED_SLOT_COUNT - activeCurated.length;
+
+    if (slotsToFill > 0) {
+      const candidates = resourcePool.filter(item => !usedTitles.has(item.title));
+      const toAdd = candidates.slice(0, slotsToFill).map(item => ({ ...item, is_curated: true }));
+      if (toAdd.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/pro_dev`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(toAdd)
+        });
+      }
+    }
+  }
+
+  async function loadItems() {
+    await topUpCurated();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?select=*&order=is_complete.asc,created_at.desc`, { headers });
+    allItems = await res.json();
+    render();
+  }
+
+  function setFilter(tag) {
+    currentFilter = tag;
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.tag === tag);
+    });
+    render();
+  }
+
+  function render() {
+    const listEl = document.getElementById("item-list");
+    const items = currentFilter === "all" ? allItems : allItems.filter(i => i.tag === currentFilter);
+
+    if (!items.length) {
+      listEl.innerHTML = `<div class="empty-state">Nothing here yet.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = items.map(item => `
+      <div class="item-row">
+        <div class="item-check ${item.is_complete ? 'done' : ''}" onclick="toggleItem(${item.id}, ${!item.is_complete}, ${item.is_curated})">
+          ${item.is_complete ? '✓' : ''}
+        </div>
+        <div class="item-content">
+          <div class="item-title ${item.is_complete ? 'done' : ''}">
+            ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank">${escapeHtml(item.title)}</a>` : escapeHtml(item.title)}
+          </div>
+        </div>
+        <span class="tag">${item.tag}</span>
+        <div class="delete-x" onclick="deleteItem(${item.id})">✕</div>
+      </div>
+    `).join("");
+  }
+
+  async function toggleItem(id, newVal, isCurated) {
+    if (isCurated && newVal === true) {
+      // Curated + just completed: delete it for good right away, then top up
+      await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?id=eq.${id}`, { method: "DELETE", headers });
+    } else {
+      await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?id=eq.${id}`, {
+        method: "PATCH", headers, body: JSON.stringify({ is_complete: newVal })
+      });
+    }
+    loadItems();
+  }
+
+  async function deleteItem(id) {
+    await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?id=eq.${id}`, {
+      method: "DELETE", headers
+    });
+    loadItems();
+  }
+
+  function openModal() {
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    document.getElementById("item-title").value = "";
+    document.getElementById("item-url").value = "";
+  }
+
+  async function saveItem() {
+    const title = document.getElementById("item-title").value.trim();
+    const tag = document.getElementById("item-tag").value;
+    const url = document.getElementById("item-url").value.trim();
+    if (!title) return;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/pro_dev`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ title, tag, url: url || null, is_curated: false })
+    });
+
+    closeModal();
+    loadItems();
+  }
+
+  loadItems();
+</script>
+
+</body>
+</html>

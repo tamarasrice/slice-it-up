@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slice It Up — Watchlist</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f7;
+    color: #1a1a1a;
+    padding: 2rem;
+  }
+  .app { max-width: 480px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e5df;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .topbar p { font-size: 13px; color: #888; margin-top: 2px; }
+  .back-link { font-size: 13px; color: #888; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+  .back-link:hover { color: #555; }
+
+  .card { background: #fff; border: 1px solid #e8e5df; border-radius: 10px; overflow: hidden; }
+  .card-header {
+    background: #72243E; padding: 0.75rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+  .add-btn {
+    font-size: 12px; color: rgba(255,255,255,0.85); background: none; border: none;
+    cursor: pointer; font-family: inherit;
+  }
+  .card-body { padding: 1rem 1.25rem; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.6rem;
+  }
+
+  .watch-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0ede8; }
+  .watch-row:last-child { border-bottom: none; }
+  .watch-check {
+    width: 17px; height: 17px; border-radius: 4px; border: 1px solid #ccc;
+    flex-shrink: 0; cursor: pointer; background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: #72243E;
+  }
+  .watch-check.done { background: #F7E8ED; border-color: #C77F9B; }
+  .watch-title { font-size: 13px; flex: 1; }
+  .watch-title.done { text-decoration: line-through; color: #bbb; }
+  .service-badge { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 10px; flex-shrink: 0; }
+  .netflix { background: #FCEBEB; color: #A32D2D; }
+  .hulu    { background: #EAF3DE; color: #3B6D11; }
+  .apple   { background: #F1EFE8; color: #5F5E5A; }
+  .amazon  { background: #FAEEDA; color: #854F0B; }
+  .delete-x { font-size: 12px; color: #ccc; cursor: pointer; padding: 0 4px; }
+  .delete-x:hover { color: #E24B4A; }
+
+  .empty-state { font-size: 13px; color: #999; text-align: center; padding: 1rem 0; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 1.5rem; width: 320px; }
+  .modal h3 { font-size: 15px; margin-bottom: 1rem; }
+  .modal label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select {
+    width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;
+    font-family: inherit;
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+  .modal-actions button {
+    font-size: 13px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancel { background: #f0ede8; color: #555; }
+  .btn-save { background: #72243E; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Slice it up</h1>
+      <p id="today-date"></p>
+    </div>
+    <a class="back-link" href="index.html">← Dashboard</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Watchlist</h2>
+      <button class="add-btn" onclick="openModal()">+ title</button>
+    </div>
+    <div class="card-body">
+      <div class="section-label">To watch</div>
+      <div id="watch-list">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Add to watchlist</h3>
+    <label>Title</label>
+    <input type="text" id="watch-title-input" placeholder="e.g. The Bear S3">
+    <label>Service</label>
+    <select id="watch-service-input">
+      <option value="Netflix">Netflix</option>
+      <option value="Hulu">Hulu</option>
+      <option value="Apple">Apple</option>
+      <option value="Amazon">Amazon</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTitle()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://xybbihonrxuswlkhloyd.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5YmJpaG9ucnh1c3dsa2hsb3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzYxOTAsImV4cCI6MjA5NzIxMjE5MH0.549JALOdaUPJF5NhjG_IVQBUdPvJu5tKWiKOMTr-_Is";
+
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json"
+  };
+
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const serviceClass = { Netflix: "netflix", Hulu: "hulu", Apple: "apple", Amazon: "amazon" };
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function loadWatchlist() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/watchlist?select=*&order=is_watched.asc,created_at.desc`, { headers });
+    const items = await res.json();
+    const listEl = document.getElementById("watch-list");
+
+    if (!items.length) {
+      listEl.innerHTML = `<div class="empty-state">Nothing on your list yet — click "+ title" to add one.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = items.map(item => `
+      <div class="watch-row">
+        <div class="watch-check ${item.is_watched ? 'done' : ''}" onclick="toggleWatched(${item.id}, ${!item.is_watched})">
+          ${item.is_watched ? '✓' : ''}
+        </div>
+        <span class="watch-title ${item.is_watched ? 'done' : ''}">${escapeHtml(item.title)}</span>
+        <span class="service-badge ${serviceClass[item.service]}">${item.service}</span>
+        <div class="delete-x" onclick="deleteTitle(${item.id})">✕</div>
+      </div>
+    `).join("");
+  }
+
+  async function toggleWatched(id, newVal) {
+    await fetch(`${SUPABASE_URL}/rest/v1/watchlist?id=eq.${id}`, {
+      method: "PATCH", headers, body: JSON.stringify({ is_watched: newVal })
+    });
+    loadWatchlist();
+  }
+
+  async function deleteTitle(id) {
+    await fetch(`${SUPABASE_URL}/rest/v1/watchlist?id=eq.${id}`, { method: "DELETE", headers });
+    loadWatchlist();
+  }
+
+  function openModal() {
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    document.getElementById("watch-title-input").value = "";
+  }
+
+  async function saveTitle() {
+    const title = document.getElementById("watch-title-input").value.trim();
+    const service = document.getElementById("watch-service-input").value;
+    if (!title) return;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/watchlist`, {
+      method: "POST", headers, body: JSON.stringify({ title, service })
+    });
+
+    closeModal();
+    loadWatchlist();
+  }
+
+  loadWatchlist();
+</script>
+
+</body>
+</html>
