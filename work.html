@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slice It Up — Work</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f7;
+    color: #1a1a1a;
+    padding: 2rem;
+  }
+  .app { max-width: 640px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e5df;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .topbar p { font-size: 13px; color: #888; margin-top: 2px; }
+
+  .card { background: #fff; border: 1px solid #e8e5df; border-radius: 10px; overflow: hidden; }
+  .card-header {
+    background: #993C1D; padding: 0.75rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+  .add-btn {
+    font-size: 12px; color: rgba(255,255,255,0.85); background: none; border: none;
+    cursor: pointer; font-family: inherit;
+  }
+  .card-body { padding: 1rem 1.25rem; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.6rem;
+  }
+
+  .client-row { padding: 10px 0; border-bottom: 1px solid #f0ede8; }
+  .client-row:last-child { border-bottom: none; }
+  .client-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .client-name { font-size: 14px; font-weight: 600; }
+  .pill { font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+  .pill-active   { background: #E1F5EE; color: #0F6E56; }
+  .pill-waiting  { background: #FAEEDA; color: #854F0B; }
+  .pill-proposal { background: #EEEDFE; color: #534AB7; }
+  .pill-invoiced { background: #EAF3DE; color: #3B6D11; }
+  .pill-complete { background: #eee; color: #888; }
+
+  .action-item { display: flex; gap: 8px; align-items: flex-start; padding: 4px 0; }
+  .action-check {
+    width: 15px; height: 15px; border-radius: 4px; border: 1px solid #ccc;
+    flex-shrink: 0; margin-top: 2px; cursor: pointer; background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 10px; color: #0F6E56;
+  }
+  .action-check.done { background: #E1F5EE; border-color: #5DCAA5; }
+  .action-text { font-size: 13px; color: #444; line-height: 1.4; flex: 1; }
+  .action-text.done { text-decoration: line-through; color: #aaa; }
+  .urgent-dot { width: 6px; height: 6px; border-radius: 50%; background: #E24B4A; flex-shrink: 0; margin-top: 5px; }
+  .delete-x { font-size: 12px; color: #ccc; cursor: pointer; padding: 0 4px; }
+  .delete-x:hover { color: #E24B4A; }
+
+  .add-action-row { display: flex; gap: 6px; margin-top: 8px; }
+  .add-action-row input { flex: 1; font-size: 12px; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px; }
+  .add-action-row button {
+    font-size: 12px; padding: 5px 10px; border: none; border-radius: 6px;
+    background: #993C1D; color: #fff; cursor: pointer;
+  }
+  .urgent-toggle { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; }
+
+  .empty-state { font-size: 13px; color: #999; text-align: center; padding: 1rem 0; }
+  .loading { font-size: 13px; color: #999; text-align: center; padding: 2rem 0; }
+
+  /* Modal for new client */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 10px; padding: 1.5rem; width: 320px;
+  }
+  .modal h3 { font-size: 15px; margin-bottom: 1rem; }
+  .modal label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select {
+    width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;
+    font-family: inherit;
+  }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+  .modal-actions button {
+    font-size: 13px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancel { background: #f0ede8; color: #555; }
+  .btn-save { background: #993C1D; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Slice it up</h1>
+      <p id="today-date"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Work</h2>
+      <button class="add-btn" onclick="openModal()">+ client</button>
+    </div>
+    <div class="card-body">
+      <div class="section-label">Active clients</div>
+      <div id="client-list">
+        <div class="loading">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Client Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Add a new client</h3>
+    <label>Client name</label>
+    <input type="text" id="new-client-name" placeholder="e.g. Acme Co.">
+    <label>Status</label>
+    <select id="new-client-status">
+      <option value="proposal">Proposal</option>
+      <option value="active" selected>Active</option>
+      <option value="waiting">Waiting on client</option>
+      <option value="invoiced">Invoiced</option>
+      <option value="complete">Complete</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveClient()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- SUPABASE CONFIG ----
+  const SUPABASE_URL = "https://xybbihonrxuswlkhloyd.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5YmJpaG9ucnh1c3dsa2hsb3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzYxOTAsImV4cCI6MjA5NzIxMjE5MH0.549JALOdaUPJF5NhjG_IVQBUdPvJu5tKWiKOMTr-_Is";
+
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json"
+  };
+
+  // Display today's date
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const pillClass = {
+    proposal: "pill-proposal",
+    active: "pill-active",
+    waiting: "pill-waiting",
+    invoiced: "pill-invoiced",
+    complete: "pill-complete"
+  };
+  const pillLabel = {
+    proposal: "Proposal",
+    active: "Active",
+    waiting: "Waiting",
+    invoiced: "Invoiced",
+    complete: "Complete"
+  };
+
+  async function loadClients() {
+    const clientsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/clients?select=*&order=created_at.asc`,
+      { headers }
+    );
+    const clients = await clientsRes.json();
+
+    const itemsRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/action_items?select=*&order=is_urgent.desc,created_at.asc`,
+      { headers }
+    );
+    const allItems = await itemsRes.json();
+
+    const listEl = document.getElementById("client-list");
+
+    if (!clients.length) {
+      listEl.innerHTML = `<div class="empty-state">No clients yet — click "+ client" to add one.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = clients.map(client => {
+      const items = allItems.filter(i => i.client_id === client.id);
+      const itemsHtml = items.length
+        ? items.map(item => `
+            <div class="action-item">
+              ${item.is_urgent && !item.is_complete ? '<div class="urgent-dot"></div>' : '<div style="width:6px"></div>'}
+              <div class="action-check ${item.is_complete ? 'done' : ''}" onclick="toggleItem(${item.id}, ${!item.is_complete})">
+                ${item.is_complete ? '✓' : ''}
+              </div>
+              <div class="action-text ${item.is_complete ? 'done' : ''}">${escapeHtml(item.task)}</div>
+              <div class="delete-x" onclick="deleteItem(${item.id})">✕</div>
+            </div>
+          `).join("")
+        : `<div class="empty-state" style="text-align:left;padding:4px 0;">No action items yet.</div>`;
+
+      return `
+        <div class="client-row">
+          <div class="client-top">
+            <span class="client-name">${escapeHtml(client.name)}</span>
+            <span class="pill ${pillClass[client.status]}">${pillLabel[client.status]}</span>
+          </div>
+          ${itemsHtml}
+          <div class="add-action-row">
+            <input type="text" placeholder="Add action item..." id="new-item-${client.id}"
+              onkeydown="if(event.key==='Enter') addItem(${client.id})">
+            <label class="urgent-toggle"><input type="checkbox" id="urgent-${client.id}"> urgent</label>
+            <button onclick="addItem(${client.id})">Add</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function addItem(clientId) {
+    const input = document.getElementById(`new-item-${clientId}`);
+    const urgentBox = document.getElementById(`urgent-${clientId}`);
+    const task = input.value.trim();
+    if (!task) return;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/action_items`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ client_id: clientId, task, is_urgent: urgentBox.checked })
+    });
+
+    input.value = "";
+    urgentBox.checked = false;
+    loadClients();
+  }
+
+  async function toggleItem(itemId, newValue) {
+    await fetch(`${SUPABASE_URL}/rest/v1/action_items?id=eq.${itemId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify({ is_complete: newValue })
+    });
+    loadClients();
+  }
+
+  async function deleteItem(itemId) {
+    await fetch(`${SUPABASE_URL}/rest/v1/action_items?id=eq.${itemId}`, {
+      method: "DELETE",
+      headers
+    });
+    loadClients();
+  }
+
+  function openModal() {
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    document.getElementById("new-client-name").value = "";
+  }
+
+  async function saveClient() {
+    const name = document.getElementById("new-client-name").value.trim();
+    const status = document.getElementById("new-client-status").value;
+    if (!name) return;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/clients`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ name, status })
+    });
+
+    closeModal();
+    loadClients();
+  }
+
+  loadClients();
+</script>
+
+</body>
+</html>

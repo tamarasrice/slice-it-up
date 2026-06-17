@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slice It Up</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f7;
+    color: #1a1a1a;
+    padding: 2rem;
+  }
+  .app { max-width: 980px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e5df;
+  }
+  .topbar h1 { font-size: 19px; font-weight: 500; letter-spacing: -0.3px; }
+  .topbar p { font-size: 13px; color: #888; margin-top: 2px; }
+
+  .columns { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 20px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 20px; }
+
+  .card { background: #fff; border: 1px solid #e8e5df; border-radius: 10px; overflow: hidden; }
+  .card-header {
+    padding: 0.75rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+  .hdr-exercise  { background: #0F6E56; }
+  .hdr-tracker   { background: #534AB7; }
+  .hdr-work      { background: #993C1D; }
+  .hdr-prodev    { background: #854F0B; }
+  .hdr-reading   { background: #185FA5; }
+  .hdr-watchlist { background: #72243E; }
+
+  .link-btn {
+    font-size: 12px; color: rgba(255,255,255,0.85); background: none; border: none;
+    cursor: pointer; font-family: inherit; text-decoration: none;
+  }
+  .card-body { padding: 1rem 1.25rem; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.6rem;
+  }
+
+  /* Exercise */
+  .exercise-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ede8; }
+  .exercise-row:last-child { border-bottom: none; }
+  .check {
+    width: 17px; height: 17px; border-radius: 4px; border: 1px solid #ccc;
+    flex-shrink: 0; cursor: pointer; background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .check.done { background: #E1F5EE; border-color: #5DCAA5; color: #0F6E56; }
+  .exercise-label { font-size: 13px; flex: 1; }
+  .walk-input-wrap { display: flex; align-items: center; gap: 5px; }
+  .walk-input {
+    width: 52px; font-size: 13px; padding: 4px 7px; border: 1px solid #ddd;
+    border-radius: 6px; background: #f7f6f3; text-align: right; font-family: inherit;
+  }
+  .walk-unit { font-size: 12px; color: #999; }
+  .month-link {
+    display: block; margin-top: 0.75rem; padding-top: 0.65rem;
+    border-top: 1px solid #f0ede8; font-size: 12px; color: #0F6E56;
+    text-align: center; cursor: pointer;
+  }
+
+  /* Health Tracker */
+  .event-row { display: flex; gap: 8px; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #f0ede8; }
+  .event-row:last-child { border-bottom: none; }
+  .event-dot { width: 6px; height: 6px; border-radius: 50%; background: #AFA9EC; margin-top: 5px; flex-shrink: 0; }
+  .event-name { font-size: 13px; font-weight: 500; }
+  .event-date { font-size: 11px; color: #999; }
+
+  /* Work */
+  .pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .pill-active   { background: #E1F5EE; color: #0F6E56; }
+  .pill-waiting  { background: #FAEEDA; color: #854F0B; }
+  .pill-proposal { background: #EEEDFE; color: #534AB7; }
+  .pill-invoiced { background: #EAF3DE; color: #3B6D11; }
+  .pill-complete { background: #eee; color: #888; }
+  .client-row { padding: 8px 0; border-bottom: 1px solid #f0ede8; }
+  .client-row:last-child { border-bottom: none; }
+  .client-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .client-name { font-size: 13px; font-weight: 600; }
+  .action-item { display: flex; gap: 6px; align-items: flex-start; padding: 2px 0; }
+  .action-dot { width: 5px; height: 5px; border-radius: 50%; background: #ccc; flex-shrink: 0; margin-top: 5px; }
+  .action-dot.urgent { background: #E24B4A; }
+  .action-text { font-size: 12px; color: #666; }
+  .more-link { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+  /* Pro Dev */
+  .ai-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0ede8; }
+  .ai-row:last-child { border-bottom: none; }
+  .ai-tag { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 10px; background: #f7f2e9; color: #854F0B; white-space: nowrap; margin-top: 1px; }
+  .ai-text { color: #555; flex: 1; font-size: 12px; }
+
+  /* Reading */
+  .book-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f0ede8; align-items: center; }
+  .book-row:last-child { border-bottom: none; }
+  .book-cover { width: 26px; height: 38px; border-radius: 3px; background: #f0ede8; border: 1px solid #e3e0da; flex-shrink: 0; overflow: hidden; display:flex; align-items:center; justify-content:center; }
+  .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .book-title { font-size: 13px; font-weight: 600; }
+  .book-author { font-size: 11px; color: #888; }
+
+  /* Watchlist */
+  .watch-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0ede8; }
+  .watch-row:last-child { border-bottom: none; }
+  .service-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; min-width: 50px; text-align: center; flex-shrink: 0; }
+  .netflix { background: #FCEBEB; color: #A32D2D; }
+  .hulu    { background: #EAF3DE; color: #3B6D11; }
+  .apple   { background: #F1EFE8; color: #5F5E5A; }
+  .amazon  { background: #FAEEDA; color: #854F0B; }
+
+  .empty-state { font-size: 12px; color: #999; padding: 0.5rem 0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Slice it up</h1>
+      <p id="today-date"></p>
+    </div>
+  </div>
+
+  <div class="columns">
+
+    <!-- LEFT COLUMN: Exercise + Health Tracker -->
+    <div class="col">
+      <div class="card">
+        <div class="card-header hdr-exercise">
+          <h2>Exercise</h2>
+        </div>
+        <div class="card-body">
+          <div class="section-label">Today</div>
+          <div class="exercise-row">
+            <div class="check" id="otf-check" onclick="toggleOTF()"></div>
+            <span class="exercise-label">OrangeTheory</span>
+          </div>
+          <div class="exercise-row">
+            <div class="check" id="walk-check"></div>
+            <span class="exercise-label">Walking</span>
+            <div class="walk-input-wrap">
+              <input type="number" class="walk-input" id="miles-input" min="0" step="0.1" value="0" onchange="saveMiles()">
+              <span class="walk-unit">mi</span>
+            </div>
+          </div>
+          <div class="exercise-row">
+            <div class="check" id="stretch-check" onclick="toggleStretch()"></div>
+            <span class="exercise-label">Stretching</span>
+          </div>
+          <a class="month-link" href="exercise.html">View this month →</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header hdr-tracker">
+          <h2>Health Tracker</h2>
+          <a class="link-btn" href="health-tracker.html">view all →</a>
+        </div>
+        <div class="card-body" id="tracker-body">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE COLUMN: Work + Pro Dev -->
+    <div class="col">
+      <div class="card">
+        <div class="card-header hdr-work">
+          <h2>Work</h2>
+          <a class="link-btn" href="work.html">manage →</a>
+        </div>
+        <div class="card-body" id="work-body">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header hdr-prodev">
+          <h2>Professional Dev</h2>
+          <a class="link-btn" href="pro-dev.html">view all →</a>
+        </div>
+        <div class="card-body" id="prodev-body">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Reading + Watchlist -->
+    <div class="col">
+      <div class="card">
+        <div class="card-header hdr-reading">
+          <h2>Reading</h2>
+          <a class="link-btn" href="reading.html">view all →</a>
+        </div>
+        <div class="card-body" id="reading-body">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header hdr-watchlist">
+          <h2>Watchlist</h2>
+          <a class="link-btn" href="watchlist.html">view all →</a>
+        </div>
+        <div class="card-body" id="watchlist-body">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://xybbihonrxuswlkhloyd.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5YmJpaG9ucnh1c3dsa2hsb3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzYxOTAsImV4cCI6MjA5NzIxMjE5MH0.549JALOdaUPJF5NhjG_IVQBUdPvJu5tKWiKOMTr-_Is";
+
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json"
+  };
+
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  // ---------- EXERCISE ----------
+  let todayRow = null;
+  async function loadExercise() {
+    const date = todayStr();
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/exercise_log?log_date=eq.${date}&select=*`, { headers });
+    const rows = await res.json();
+    todayRow = rows[0] || null;
+
+    const otfDone = todayRow?.orangetheory || false;
+    const stretchDone = todayRow?.stretching || false;
+    const miles = todayRow?.walking_miles || 0;
+
+    const otfCheck = document.getElementById("otf-check");
+    otfCheck.classList.toggle("done", otfDone);
+    otfCheck.innerHTML = otfDone ? "✓" : "";
+
+    const stretchCheck = document.getElementById("stretch-check");
+    stretchCheck.classList.toggle("done", stretchDone);
+    stretchCheck.innerHTML = stretchDone ? "✓" : "";
+
+    document.getElementById("miles-input").value = miles;
+    const walkCheck = document.getElementById("walk-check");
+    walkCheck.classList.toggle("done", miles > 0);
+    walkCheck.innerHTML = miles > 0 ? "✓" : "";
+  }
+
+  async function upsertToday(fields) {
+    const date = todayStr();
+    if (todayRow) {
+      await fetch(`${SUPABASE_URL}/rest/v1/exercise_log?id=eq.${todayRow.id}`, {
+        method: "PATCH", headers, body: JSON.stringify(fields)
+      });
+    } else {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/exercise_log`, {
+        method: "POST",
+        headers: { ...headers, "Prefer": "return=representation" },
+        body: JSON.stringify({ log_date: date, ...fields })
+      });
+      const data = await res.json();
+      todayRow = data[0];
+    }
+  }
+
+  async function toggleOTF() {
+    await upsertToday({ orangetheory: !(todayRow?.orangetheory || false) });
+    loadExercise();
+  }
+  async function toggleStretch() {
+    await upsertToday({ stretching: !(todayRow?.stretching || false) });
+    loadExercise();
+  }
+  async function saveMiles() {
+    const val = parseFloat(document.getElementById("miles-input").value) || 0;
+    await upsertToday({ walking_miles: val });
+    loadExercise();
+  }
+
+  // ---------- HEALTH TRACKER (most recent 3) ----------
+  async function loadTracker() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/health_tracker?select=*&order=event_date.desc&limit=3`, { headers });
+    const events = await res.json();
+    const body = document.getElementById("tracker-body");
+
+    if (!events.length) {
+      body.innerHTML = `<div class="empty-state">No events yet.</div>`;
+      return;
+    }
+
+    body.innerHTML = events.map(ev => {
+      const [y,m,d] = ev.event_date.split("-").map(Number);
+      const dt = new Date(y, m-1, d);
+      const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `
+        <div class="event-row">
+          <div class="event-dot"></div>
+          <div>
+            <div class="event-name">${escapeHtml(ev.event_name)}</div>
+            <div class="event-date">${dateStr}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ---------- WORK (active/waiting/proposal clients with open items) ----------
+  const pillClass = { proposal: "pill-proposal", active: "pill-active", waiting: "pill-waiting", invoiced: "pill-invoiced", complete: "pill-complete" };
+  const pillLabel = { proposal: "Proposal", active: "Active", waiting: "Waiting", invoiced: "Invoiced", complete: "Complete" };
+
+  async function loadWork() {
+    const clientsRes = await fetch(`${SUPABASE_URL}/rest/v1/clients?select=*&status=neq.complete&order=created_at.asc`, { headers });
+    const clients = await clientsRes.json();
+
+    const itemsRes = await fetch(`${SUPABASE_URL}/rest/v1/action_items?select=*&is_complete=eq.false&order=is_urgent.desc,created_at.asc`, { headers });
+    const allItems = await itemsRes.json();
+
+    const body = document.getElementById("work-body");
+
+    if (!clients.length) {
+      body.innerHTML = `<div class="empty-state">No active clients.</div>`;
+      return;
+    }
+
+    body.innerHTML = `<div class="section-label">Active clients</div>` + clients.map(client => {
+      const items = allItems.filter(i => i.client_id === client.id);
+      const shown = items.slice(0, 2);
+      const extra = items.length - shown.length;
+
+      const itemsHtml = shown.length
+        ? shown.map(item => `
+            <div class="action-item">
+              <div class="action-dot ${item.is_urgent ? 'urgent' : ''}"></div>
+              <div class="action-text">${escapeHtml(item.task)}</div>
+            </div>
+          `).join("")
+        : `<div class="action-text" style="color:#bbb;padding:2px 0;">No open items</div>`;
+
+      return `
+        <div class="client-row">
+          <div class="client-top">
+            <span class="client-name">${escapeHtml(client.name)}</span>
+            <span class="pill ${pillClass[client.status]}">${pillLabel[client.status]}</span>
+          </div>
+          ${itemsHtml}
+          ${extra > 0 ? `<div class="more-link">+ ${extra} more</div>` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ---------- PRO DEV (top 3 curated, unfinished) ----------
+  async function loadProDev() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/pro_dev?select=*&is_complete=eq.false&order=created_at.desc&limit=3`, { headers });
+    const items = await res.json();
+    const body = document.getElementById("prodev-body");
+
+    if (!items.length) {
+      body.innerHTML = `<div class="empty-state">Nothing queued.</div>`;
+      return;
+    }
+
+    body.innerHTML = items.map(item => `
+      <div class="ai-row">
+        <span class="ai-tag">${item.tag}</span>
+        <span class="ai-text">${escapeHtml(item.title)}</span>
+      </div>
+    `).join("");
+  }
+
+  // ---------- READING (top 3 unread) ----------
+  async function loadReading() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/books?select=*&is_read=eq.false&order=created_at.desc&limit=3`, { headers });
+    const books = await res.json();
+    const body = document.getElementById("reading-body");
+
+    if (!books.length) {
+      body.innerHTML = `<div class="empty-state">No books queued.</div>`;
+      return;
+    }
+
+    body.innerHTML = books.map(book => `
+      <div class="book-row">
+        <div class="book-cover">
+          ${book.cover_url ? `<img src="${escapeHtml(book.cover_url)}" alt="">` : "📖"}
+        </div>
+        <div>
+          <div class="book-title">${escapeHtml(book.title)}</div>
+          ${book.author ? `<div class="book-author">${escapeHtml(book.author)}</div>` : ""}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  // ---------- WATCHLIST (top 4 unwatched) ----------
+  const serviceClass = { Netflix: "netflix", Hulu: "hulu", Apple: "apple", Amazon: "amazon" };
+  async function loadWatchlist() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/watchlist?select=*&is_watched=eq.false&order=created_at.desc&limit=4`, { headers });
+    const items = await res.json();
+    const body = document.getElementById("watchlist-body");
+
+    if (!items.length) {
+      body.innerHTML = `<div class="empty-state">Nothing queued.</div>`;
+      return;
+    }
+
+    body.innerHTML = items.map(item => `
+      <div class="watch-row">
+        <span style="flex:1;font-size:13px;">${escapeHtml(item.title)}</span>
+        <span class="service-badge ${serviceClass[item.service]}">${item.service}</span>
+      </div>
+    `).join("");
+  }
+
+  // ---------- LOAD EVERYTHING ----------
+  loadExercise();
+  loadTracker();
+  loadWork();
+  loadProDev();
+  loadReading();
+  loadWatchlist();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slice It Up — Reading</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #faf9f7;
+    color: #1a1a1a;
+    padding: 2rem;
+  }
+  .app { max-width: 480px; margin: 0 auto; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
+    border-bottom: 1px solid #e8e5df;
+  }
+  .topbar h1 { font-size: 18px; font-weight: 500; letter-spacing: -0.3px; }
+  .topbar p { font-size: 13px; color: #888; margin-top: 2px; }
+
+  .card { background: #fff; border: 1px solid #e8e5df; border-radius: 10px; overflow: hidden; }
+  .card-header {
+    background: #185FA5; padding: 0.75rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .card-header h2 { font-size: 15px; font-weight: 500; color: #fff; }
+  .add-btn {
+    font-size: 12px; color: rgba(255,255,255,0.85); background: none; border: none;
+    cursor: pointer; font-family: inherit;
+  }
+  .card-body { padding: 1rem 1.25rem; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 0.6rem;
+  }
+
+  .book-row { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0ede8; }
+  .book-row:last-child { border-bottom: none; }
+  .book-cover {
+    width: 38px; height: 56px; border-radius: 4px; background: #f0ede8;
+    border: 1px solid #e3e0da; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; overflow: hidden;
+  }
+  .book-cover img { width: 100%; height: 100%; object-fit: cover; }
+  .book-cover-fallback { font-size: 16px; color: #bbb; }
+  .book-content { flex: 1; }
+  .book-title { font-size: 13px; font-weight: 600; }
+  .book-title.done { text-decoration: line-through; color: #bbb; }
+  .book-author { font-size: 12px; color: #888; margin-top: 1px; }
+  .book-check {
+    width: 17px; height: 17px; border-radius: 4px; border: 1px solid #ccc;
+    flex-shrink: 0; cursor: pointer; background: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; color: #185FA5;
+  }
+  .book-check.done { background: #E3EEFA; border-color: #6FA8DC; }
+  .delete-x { font-size: 12px; color: #ccc; cursor: pointer; padding: 0 4px; }
+  .delete-x:hover { color: #E24B4A; }
+
+  .empty-state { font-size: 13px; color: #999; text-align: center; padding: 1rem 0; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    align-items: center; justify-content: center; z-index: 10;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 10px; padding: 1.5rem; width: 320px; }
+  .modal h3 { font-size: 15px; margin-bottom: 1rem; }
+  .modal label { font-size: 12px; color: #888; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input {
+    width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;
+    font-family: inherit;
+  }
+  .modal-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+  .modal-actions button {
+    font-size: 13px; padding: 7px 14px; border-radius: 6px; border: none; cursor: pointer; font-family: inherit;
+  }
+  .btn-cancel { background: #f0ede8; color: #555; }
+  .btn-save { background: #185FA5; color: #fff; }
+  .btn-save:disabled { opacity: 0.6; cursor: default; }
+
+  .search-preview { margin-top: 10px; display: none; gap: 10px; align-items: center; background: #f7f6f3; padding: 8px; border-radius: 8px; }
+  .search-preview img { width: 32px; height: 46px; object-fit: cover; border-radius: 3px; }
+  .search-preview-text { font-size: 12px; color: #555; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <h1>Slice it up</h1>
+      <p id="today-date"></p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Reading</h2>
+      <button class="add-btn" onclick="openModal()">+ book</button>
+    </div>
+    <div class="card-body">
+      <div class="section-label">To read</div>
+      <div id="book-list">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h3>Add a book</h3>
+    <label>Title</label>
+    <input type="text" id="book-title-input" placeholder="e.g. Atomic Habits" oninput="debouncedSearch()">
+    <label>Author (optional — helps narrow the search)</label>
+    <input type="text" id="book-author-input" placeholder="e.g. James Clear" oninput="debouncedSearch()">
+    <div class="modal-hint">We'll auto-fetch the cover art from Open Library.</div>
+    <div class="search-preview" id="search-preview">
+      <img id="preview-img" src="" alt="">
+      <div class="search-preview-text" id="preview-text"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="save-btn" onclick="saveBook()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://xybbihonrxuswlkhloyd.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5YmJpaG9ucnh1c3dsa2hsb3lkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2MzYxOTAsImV4cCI6MjA5NzIxMjE5MH0.549JALOdaUPJF5NhjG_IVQBUdPvJu5tKWiKOMTr-_Is";
+
+  const headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": `Bearer ${SUPABASE_KEY}`,
+    "Content-Type": "application/json"
+  };
+
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function loadBooks() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/books?select=*&order=is_read.asc,created_at.desc`, { headers });
+    const books = await res.json();
+    const listEl = document.getElementById("book-list");
+
+    if (!books.length) {
+      listEl.innerHTML = `<div class="empty-state">No books yet — click "+ book" to add one.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = books.map(book => `
+      <div class="book-row">
+        <div class="book-check ${book.is_read ? 'done' : ''}" onclick="toggleRead(${book.id}, ${!book.is_read})">
+          ${book.is_read ? '✓' : ''}
+        </div>
+        <div class="book-cover">
+          ${book.cover_url
+            ? `<img src="${escapeHtml(book.cover_url)}" alt="">`
+            : `<span class="book-cover-fallback">📖</span>`}
+        </div>
+        <div class="book-content">
+          <div class="book-title ${book.is_read ? 'done' : ''}">${escapeHtml(book.title)}</div>
+          ${book.author ? `<div class="book-author">${escapeHtml(book.author)}</div>` : ""}
+        </div>
+        <div class="delete-x" onclick="deleteBook(${book.id})">✕</div>
+      </div>
+    `).join("");
+  }
+
+  async function toggleRead(id, newVal) {
+    await fetch(`${SUPABASE_URL}/rest/v1/books?id=eq.${id}`, {
+      method: "PATCH", headers, body: JSON.stringify({ is_read: newVal })
+    });
+    loadBooks();
+  }
+
+  async function deleteBook(id) {
+    await fetch(`${SUPABASE_URL}/rest/v1/books?id=eq.${id}`, { method: "DELETE", headers });
+    loadBooks();
+  }
+
+  // ---- Open Library search (for cover art + author autofill) ----
+  let searchTimeout = null;
+  let currentMatch = null; // { title, author, cover_url, ol_id }
+
+  function debouncedSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(searchOpenLibrary, 500);
+  }
+
+  async function searchOpenLibrary() {
+    const title = document.getElementById("book-title-input").value.trim();
+    const author = document.getElementById("book-author-input").value.trim();
+    const preview = document.getElementById("search-preview");
+
+    if (!title) {
+      preview.style.display = "none";
+      currentMatch = null;
+      return;
+    }
+
+    let query = `title=${encodeURIComponent(title)}`;
+    if (author) query += `&author=${encodeURIComponent(author)}`;
+
+    try {
+      const res = await fetch(`https://openlibrary.org/search.json?${query}&limit=1`);
+      const data = await res.json();
+      const doc = data.docs && data.docs[0];
+
+      if (doc) {
+        const coverUrl = doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg` : null;
+        currentMatch = {
+          title: doc.title || title,
+          author: doc.author_name ? doc.author_name[0] : (author || null),
+          cover_url: coverUrl,
+          ol_id: doc.key || null
+        };
+        document.getElementById("preview-img").src = coverUrl || "";
+        document.getElementById("preview-img").style.display = coverUrl ? "block" : "none";
+        document.getElementById("preview-text").textContent =
+          `Found: ${currentMatch.title}${currentMatch.author ? " — " + currentMatch.author : ""}`;
+        preview.style.display = "flex";
+      } else {
+        currentMatch = null;
+        document.getElementById("preview-text").textContent = "No match found — will save with title only.";
+        document.getElementById("preview-img").style.display = "none";
+        preview.style.display = "flex";
+      }
+    } catch (e) {
+      currentMatch = null;
+      preview.style.display = "none";
+    }
+  }
+
+  function openModal() {
+    document.getElementById("modal-overlay").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("modal-overlay").classList.remove("open");
+    document.getElementById("book-title-input").value = "";
+    document.getElementById("book-author-input").value = "";
+    document.getElementById("search-preview").style.display = "none";
+    currentMatch = null;
+  }
+
+  async function saveBook() {
+    const titleInput = document.getElementById("book-title-input").value.trim();
+    const authorInput = document.getElementById("book-author-input").value.trim();
+    if (!titleInput) return;
+
+    const payload = currentMatch
+      ? {
+          title: currentMatch.title,
+          author: currentMatch.author || authorInput || null,
+          cover_url: currentMatch.cover_url,
+          ol_id: currentMatch.ol_id
+        }
+      : {
+          title: titleInput,
+          author: authorInput || null,
+          cover_url: null,
+          ol_id: null
+        };
+
+    await fetch(`${SUPABASE_URL}/rest/v1/books`, {
+      method: "POST", headers, body: JSON.stringify(payload)
+    });
+
+    closeModal();
+    loadBooks();
+  }
+
+  loadBooks();
+</script>
+
+</body>
+</html>
